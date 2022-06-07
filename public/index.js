@@ -23,13 +23,11 @@ function logout(){
 }
 
 function loadchat(){
-	$.post('http://localhost:3001/loadchats', {
-		
-    }, (data)=>{
-		console.log(data);
+	fetch("/loadchats")
+	.then(res=>res.json())
+	.then(data=>{
 		if(data.length != 0){
 			data.forEach(data => {
-				console.log('loadchats'+data);
 				render(data.username, data.chat);
 			});
 		}
@@ -40,11 +38,12 @@ function send(){
 	let chat = document.getElementById('chatinput').value;
 	if(chat.trim() != ''){
 		let username = document.getElementById('username').innerText;
-		$.post('http://localhost:3001/', {
-			username: username,
-			chat: chat,
-		}, (data)=>{
-			console.log('send'+username+'	'+chat);
+		fetch("/send", {
+			method: "POST",
+			body: JSON.stringify({username: username, chat: chat}),
+			headers: {'Content-Type': 'application/json'}
+		})
+		.then((res)=>{
 			render(username, chat);
 			document.getElementById('chatinput').value = '';
 		});
@@ -54,17 +53,20 @@ function send(){
 function update(){
 	//Get the last chat to checck whether there are any new ones
 	let lastnum = document.getElementsByClassName('divContainer').length; 
-
-	$.post('http://localhost:3001/update', {
-		msgNum: lastnum
-    }, (data)=>{
-		if(data.length != 0){
-			data.forEach(data => {
-				render(data.username, data.chat);
-			});
-		}
+  	fetch("/update", {
+      method: "POST",
+      body: JSON.stringify({msgNum: lastnum}),
+	  headers: {'Content-Type': 'application/json'}
+    })
+	.then(res=>res.json())
+	.then((data)=>{
 		console.log(data);
-	});
+      	if(data.length != 0){
+  			data.forEach(data => {
+  				render(data.username, data.chat);
+  			});
+      	}
+  	});
 }
 
 function render(username, chat){
@@ -82,5 +84,6 @@ function render(username, chat){
 	div.append(userdiv);
 	div.append(chatdiv);
 	document.getElementById('chats').append(div);
+	document.getElementById('chats').scroll({top: document.getElementById('chats').scrollHeight, behavior: 'smooth'});
 }
 

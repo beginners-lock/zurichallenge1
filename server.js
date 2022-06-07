@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const server = express();
 const fs = require('fs');
 
-
+server.use(express.json());
 server.use(bodyParser.json());
 server.use(bodyParser.urlencoded({ extended: true }));
 
@@ -19,7 +19,7 @@ server.get('', (req, res)=>{
     res.render('index');
 });
 
-server.post('', (req, res)=> {
+server.post('/send', (req, res)=> {
     let chat = req.body.chat;
     let user = req.body.username;
     let data = "<<"+user+">>\n"+chat+"\n";
@@ -28,33 +28,32 @@ server.post('', (req, res)=> {
     res.send('');
 });
 
-server.post('/loadchats', async (req, res)=> {
+server.get('/loadchats', async (req, res)=> {
     let data = fs.readFileSync('index.txt', 'utf-8');
     let datum = data.split('\n');
     let chats = []
     let username = null;
     let chat = '';
-
-    await datum.forEach((line)=>{
-        if(line.includes('<<') && line.includes('>>')){
+    for(let i=0; i<datum.length; i++){
+        if(datum[i].includes('<<') && datum[i].includes('>>')){
             //If there is already a username you store the current username and chat info in an object and push to the array
             
             if(username!=null){
                 chats.push({username: username, chat: chat});
-                chat='';
+                chat= '';
             }
-            username = line.substring(2, line.indexOf('>'));
+            username = datum[i].substring(2, datum[i].indexOf('>'));
         }else{
-            chat+=line+'\n';
+            chat+= datum[i]+'\n';
         }
 
-        if(datum[datum.length-1] == line){
-            if(username!=null){
-                chats.push({username: username, chat: chat});
-            }
-            res.send(chats);
+        if(i==datum.length-1 && username!=null){
+            chats.push({username: username, chat: chat});
+            await res.send(chats);
         }
-    });
+    }
+    
+    return;
 });
 
 server.post('/update', async (req, res)=> {
@@ -65,33 +64,34 @@ server.post('/update', async (req, res)=> {
     let username = null;
     let chat = '';
     let counter = 0;
-
-    await datum.forEach((line)=>{
-        if(line.includes('<<') && line.includes('>>')){
+    for(let i=0; i<datum.length; i++){
+        if(datum[i].includes('<<') && datum[i].includes('>>')){
             //If there is already a username you store the current username and chat info in an object and push to the array
             if(username!=null){
                 if(counter>=msgNum){
                     chats.push({username: username, chat: chat});
-                    console.log(username+' '+chat);
                     chat = '';
                 }
                 counter++;
             }
-            username = line.substring(2, line.indexOf('>'));
+            username = datum[i].substring(2, datum[i].indexOf('>'));
         }else{
             if(counter>=msgNum){
-                chat+=line+'\n';
+                chat+=datum[i]+'\n';
             }
             
         }
 
-        if(datum[datum.length-1] == line){
+        if(i==datum.length-1){
             if(counter>=msgNum && username!=null){
                 chats.push({username: username, chat: chat});
             }
-            res.send(chats);
+
+            await res.send(chats);
         }
-    });
+    }
+
+    return;
 });
 
 server.listen('3001', (req, res)=>{
